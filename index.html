@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Directorio de oportunidades laborales · XAcademy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Oportunidades laborales para egresados de XAcademy, un programa de Technology with Purpose Foundation.">
+  <script>
+    // Conexión con la hoja: los datos se piden a la app de Apps Script (API JSON).
+    // Reemplaza a google.script.run, que solo existe dentro de Apps Script.
+    (function () {
+      var API_URL = 'https://script.google.com/macros/s/AKfycbzuuMIb4O4iaWsAkqSPo7T_PBUeH7fsPrreqhAS955kh70irwTU6-Ovwab4ZEtBWt66Xw/exec';
+      var ACCIONES = { getOfertasPublicas: 'ofertas', getEstadisticas: 'estadisticas', getOpcionesFiltros: 'opciones', registrarEvento: 'evento' };
+      function crear(ok, fallo) {
+        return new Proxy({}, { get: function (_, nombre) {
+          if (nombre === 'withSuccessHandler') return function (f) { return crear(f, fallo); };
+          if (nombre === 'withFailureHandler') return function (f) { return crear(ok, f); };
+          var accion = ACCIONES[nombre];
+          if (!accion) return undefined;
+          return function (arg) {
+            var url = API_URL + '?api=' + accion;
+            if (accion === 'evento') url += '&data=' + encodeURIComponent(JSON.stringify(arg || {}));
+            fetch(url, { redirect: 'follow' })
+              .then(function (r) { return r.json(); })
+              .then(function (j) { if (!j.ok) throw new Error(j.error || 'Error'); if (ok) ok(j.data); })
+              .catch(function (e) { if (fallo) fallo(e); });
+          };
+        } });
+      }
+      window.google = { script: { run: crear(null, null) } };
+    })();
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+    * { box-sizing: border-box; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible { outline: 3px solid #6B53F0; outline-offset: 2px; }
+    body { font-family: 'Inter', Arial, sans-serif; background: #FFFFFF; color: #14101a; margin: 0; padding: 0 0 60px; display: flex; }
+    .sidebar { width: 190px; min-width: 190px; border-right: 1px solid #E4E1EC; padding: 28px 14px; position: sticky; top: 0; height: 100vh; overflow-y: auto; background: #FBFAFE; }
+    .sidebar h3 { font-size: 11px; color: #8C939C; text-transform: uppercase; margin: 0 0 12px; letter-spacing: 0.06em; font-weight: 600; }
+    .sidebar button { display: block; width: 100%; text-align: left; background: none; border: none; padding: 11px 10px; border-radius: 8px; font-family: 'Inter', Arial, sans-serif; font-size: 13px; font-weight: 500; color: #14101a; cursor: pointer; margin-bottom: 4px; }
+    .sidebar button.activo { background: #6B21D8; color: #fff; font-weight: 600; }
+    .sidebar button:not(.activo):hover { background: #F0E9FB; color: #6B21D8; }
+    .contenido { flex: 1; min-width: 0; }
+    .header { text-align: center; background: #FFFFFF; padding: 30px 16px 26px; margin-bottom: 28px; border-bottom: 1px solid #E4E1EC; }
+    .header .logos { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 16px; flex-wrap: wrap; }
+    .header .logo-twp { height: 46px; width: auto; }
+    .header .logo-xa { height: 30px; width: auto; }
+    .header .sep { width: 1px; height: 34px; background: #D9D9D9; }
+    .header h1 { font-size: 24px; margin: 0 0 6px; color: #14101a; font-weight: 800; letter-spacing: -0.01em; }
+    .header p { font-size: 13.5px; color: #8C939C; margin: 0; }
+    .header p.contacto { margin-top: 10px; font-size: 13px; color: #5B5566; }
+    .header p.contacto a, .pie a.pie-mail { color: #6B21D8; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+    .header p.contacto a:hover { text-decoration: underline; }
+    .card button.btn-entrevista { flex-basis: 100%; background: #F7F4FD; border: 1px dashed #6B21D8; color: #6B21D8; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-family: 'Inter', Arial, sans-serif; }
+    .card button.btn-entrevista:hover { background: #EFE8FC; }
+    .card .badge-entrevista { flex-basis: 100%; font-size: 12.5px; font-weight: 700; color: #1a7a3c; background: #EAF6EE; border-radius: 8px; padding: 8px 12px; text-align: center; }
+    .dashboard-section { max-width: 1100px; margin: 0 auto 34px; padding: 30px 26px; background: linear-gradient(135deg, #14101a 0%, #241a3d 45%, #6B21D8 100%); border-radius: 20px; color: #fff; }
+    .dashboard-section h2 { font-size: 19px; margin: 0 0 20px; font-weight: 800; }
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 22px; }
+    .dashboard-stat { background: rgba(255,255,255,0.08); border-radius: 14px; padding: 18px 12px; text-align: center; border: 1px solid rgba(255,255,255,0.14); }
+    .dashboard-stat .valor { font-size: 26px; font-weight: 800; line-height: 1.15; }
+    .dashboard-stat .valor.no-disp { font-size: 14px; font-weight: 600; opacity: 0.7; }
+    .dashboard-stat .label { font-size: 11px; opacity: 0.85; margin-top: 6px; }
+    .dashboard-tendencias { background: rgba(255,255,255,0.08); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; font-size: 13px; border: 1px solid rgba(255,255,255,0.14); }
+    .dashboard-tendencias b { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.75; margin-bottom: 4px; }
+    .dashboard-skills h3 { font-size: 12.5px; margin: 0 0 10px; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.05em; }
+    .dashboard-skills .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .dashboard-skills .chip { background: #fff; color: #6B21D8; font-size: 12px; font-weight: 700; padding: 6px 13px; border-radius: 20px; }
+    .dashboard-skills .no-disp { font-size: 12px; opacity: 0.75; }
+    .destacadas-section { max-width: 1100px; margin: 0 auto 30px; padding: 0 16px; }
+    .destacadas-section h2 { font-size: 16px; color: #14101a; margin: 0 0 4px; display: flex; align-items: center; gap: 6px; font-weight: 700; }
+    .destacadas-section .sub-mini { font-size: 12px; color: #8C939C; margin: 0 0 14px; }
+    .destacadas-cards { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 760px) { .destacadas-cards { grid-template-columns: repeat(3, 1fr); } }
+    .filtros { max-width: 1100px; margin: 0 auto 8px; padding: 18px 16px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; border: 0; background: #FBFAFE; border-radius: 16px; }
+    .filtros legend:not(.sr-only) { width: 100%; }
+    .filtros .campo { display: flex; flex-direction: column; gap: 4px; text-align: left; }
+    .filtros .campo label { font-size: 11px; color: #8C939C; font-weight: 600; }
+    select, input[type="text"] { background: #FFFFFF; border: 1px solid #D9D9D9; color: #14101a; padding: 8px 12px; border-radius: 8px; font-family: 'Inter', Arial, sans-serif; font-size: 13px; }
+    select:focus, input[type="text"]:focus { outline: none; border-color: #6B21D8; }
+    .multi { position: relative; }
+    .multi-btn { position: relative; display: block; width: 100%; min-width: 150px; max-width: 240px; background: #FFFFFF; border: 1px solid #D9D9D9; color: #14101a; padding: 8px 34px 8px 12px; border-radius: 8px; font-family: 'Inter', Arial, sans-serif; font-size: 13px; text-align: left; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .multi-btn::after { content: ''; position: absolute; right: 13px; top: 50%; width: 6px; height: 6px; border-right: 2px solid #8C939C; border-bottom: 2px solid #8C939C; transform: translateY(-70%) rotate(45deg); }
+    .multi-btn:focus { outline: none; border-color: #6B21D8; }
+    .multi-btn.con-seleccion { border-color: #6B21D8; color: #6B21D8; font-weight: 600; }
+    .multi-panel { display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; background: #FFFFFF; border: 1px solid #E4E1EC; border-radius: 10px; box-shadow: 0 8px 24px rgba(20, 16, 26, 0.12); padding: 6px; min-width: 100%; width: max-content; max-width: 280px; max-height: 300px; overflow-y: auto; }
+    .multi.abierto .multi-panel { display: block; }
+    .filtros .multi-panel label { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 6px; font-size: 13px; color: #14101a; font-weight: 400; cursor: pointer; }
+    .filtros .multi-panel label:hover { background: #F0E9FB; }
+    .filtros .multi-panel label.opcion-todos { font-weight: 600; border-bottom: 1px solid #E4E1EC; border-radius: 6px 6px 0 0; margin-bottom: 4px; }
+    .multi-panel input[type="checkbox"] { accent-color: #6B21D8; width: 15px; height: 15px; margin: 0; flex-shrink: 0; }
+    .resultados-info { max-width: 1100px; margin: 16px auto; padding: 0 16px; font-size: 12px; color: #8C939C; text-align: center; }
+    .cards { max-width: 1100px; margin: 0 auto; padding: 0 16px 20px; display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 760px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+    /* Dashboard, filtros, listado de ofertas y pie comparten el mismo ancho y margen lateral */
+    .dashboard-section, .filtros, .destacadas-section, .cards, .resultados-info, .pie-inner { width: calc(100% - 48px); max-width: 1100px; margin-left: auto; margin-right: auto; }
+    .destacadas-section, .cards { padding-left: 0; padding-right: 0; }
+    .destacadas-section .cards { width: 100%; }
+    .pie { border-top: 1px solid #E4E1EC; margin-top: 40px; padding: 24px 0 4px; }
+    .pie-inner { display: flex; justify-content: space-between; align-items: center; gap: 12px 24px; flex-wrap: wrap; font-size: 13px; color: #8C939C; }
+    .pie-texto { margin: 0; }
+    .pie a { color: #6B21D8; font-weight: 600; text-decoration: none; }
+    .pie a:hover { text-decoration: underline; }
+    .pie-links { display: flex; gap: 18px; flex-wrap: wrap; }
+    .card { background: #F7F4FD; border-radius: 14px; padding: 20px 22px; border-left: 4px solid #6B21D8; display: flex; flex-direction: column; }
+    .card.urgente { border-left-color: #6B52F0; }
+    .card .top-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .card .badge { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 10px; border-radius: 20px; color: #6B21D8; background: #fff; border: 1px solid #e4d3fb; }
+    .card h2 { color: #14101a; font-size: 19px; font-weight: 800; margin: 0 0 3px; line-height: 1.25; }
+    .card .empresa { color: #6B53F0; font-weight: 600; font-size: 14px; margin: 0 0 14px; }
+    .card .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .card .chips span { background: #FFFFFF; border: 1px solid #E4E1EC; color: #14101a; padding: 3px 10px; border-radius: 20px; font-size: 12px; }
+    .card .vencimiento { font-size: 12px; font-weight: 700; color: #8C939C; margin: 0 0 12px; }
+    .card .vencimiento.urgente { color: #6B52F0; }
+    .card .btn-vermas { background: none; border: none; color: #6B21D8; font-size: 12.5px; font-weight: 700; cursor: pointer; padding: 0; margin-bottom: 12px; text-align: left; }
+    .card .detalle { display: none; margin: 0 0 14px; padding-top: 10px; border-top: 1px dashed #d9c9f2; }
+    .card .detalle.abierto { display: block; }
+    .card .detalle-item { font-size: 12.5px; color: #14101a; margin-bottom: 8px; line-height: 1.4; }
+    .card .detalle-item b { color: #8C939C; font-weight: 600; display: inline; }
+    .card .acciones-card { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; align-items: center; }
+    .card a.btn, .card button.btn-guardar, .card button.btn-postular, .card button.btn-quitar { display: inline-block; text-decoration: none; font-size: 13px; font-weight: 700; padding: 9px 16px; border-radius: 8px; cursor: pointer; font-family: 'Inter', Arial, sans-serif; border: none; }
+    .card a.btn { background: #6B21D8; color: #fff; }
+    .card a.btn:hover { background: #55199f; }
+    .card button.btn-guardar { background: #FFFFFF; border: 1px solid #6B21D8; color: #6B21D8; }
+    .card button.btn-guardar.guardado { background: #6B21D8; color: #fff; }
+    .card button.btn-postular { background: #FFFFFF; border: 1px solid #1a7a3c; color: #1a7a3c; }
+    .card button.btn-quitar { background: #FFFFFF; border: 1px solid #D9D9D9; color: #8C939C; font-weight: 500; padding: 9px 12px; }
+    .card .badge-postulado { font-size: 12px; font-weight: 700; color: #1a7a3c; }
+    .card select.estado-postulacion { font-size: 12px; padding: 7px 8px; border-radius: 8px; border: 1px solid #D9D9D9; }
+    .empty, .loading { grid-column: 1 / -1; text-align: center; color: #8C939C; font-size: 14px; margin-top: 40px; padding: 0 24px; }
+    .empty strong { display: block; color: #14101a; font-size: 15px; margin-bottom: 6px; }
+    .empty button { margin-top: 14px; background: #FFFFFF; border: 1px solid #6B21D8; color: #6B21D8; padding: 8px 16px; border-radius: 8px; font-family: 'Inter', Arial, sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .vista-oculta { display: none; }
+    @media (max-width: 760px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid #E4E1EC; display: flex; overflow-x: auto; padding: 12px; background: #FFFFFF; }
+      .sidebar h3 { display: none; }
+      .sidebar button { white-space: nowrap; width: auto; margin-right: 6px; }
+    }
+    @media (max-width: 480px) {
+      .header { padding: 20px 12px 18px; }
+      .header .logo-twp { height: 34px; }
+      .header .logo-xa { height: 22px; }
+      .header h1 { font-size: 20px; }
+      .dashboard-section, .filtros, .destacadas-section, .cards, .resultados-info, .pie-inner { width: calc(100% - 32px); }
+      .destacadas-section .cards { width: 100%; }
+      .dashboard-section { padding: 24px 16px; }
+      .filtros { flex-direction: column; align-items: stretch; }
+      .pie-inner { flex-direction: column; align-items: flex-start; }
+      .filtros .campo { width: 100%; }
+      .filtros select, .filtros input[type="text"] { width: 100%; font-size: 16px; padding: 10px 12px; }
+      .filtros .multi-btn { max-width: none; font-size: 16px; padding: 10px 34px 10px 12px; }
+      .multi-panel { width: 100%; max-width: none; }
+      .card { padding: 16px; }
+      .card h2 { font-size: 16px; }
+      .card a.btn { width: 100%; text-align: center; padding: 11px 16px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="sidebar" aria-label="Navegación">
+    <h3>Navegación</h3>
+    <button type="button" id="navTodas" class="activo" onclick="cambiarVista('todas')">Todas las ofertas</button>
+    <button type="button" id="navGuardados" onclick="cambiarVista('guardados')">Mis guardados</button>
+    <button type="button" id="navPostulaciones" onclick="cambiarVista('postulaciones')">Mis postulaciones</button>
+  </nav>
+  <div class="contenido">
+    <div class="header">
+      <div class="logos">
+        <img class="logo-twp" alt="Fundación Tecnología con Propósito" src="data:image/png;base64,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">
+        <div class="sep"></div>
+        <img class="logo-xa" alt="XAcademy" src="data:image/png;base64,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">
+      </div>
+      <h1>Directorio de oportunidades laborales</h1>
+      <p>Buscamos algunas oportunidades para nuestros egresados que tal vez te puedan interesar, miralas y contanos si te sirven.</p>
+      <p class="contacto">¿Conseguiste una entrevista? Tocá <strong>«¡Conseguí una entrevista!»</strong> en la oferta o escribinos a <a href="mailto:programa.xacademy@technologywithpurpose.org">programa.xacademy@technologywithpurpose.org</a></p>
+    </div>
+    <div id="vistaTodas">
+      <div id="dashboardSection" class="dashboard-section" style="display:none;"></div>
+      <div id="proximasSection" class="destacadas-section" style="display:none;"></div>
+      <fieldset class="filtros" role="search" aria-label="Filtros de búsqueda de ofertas">
+        <legend class="sr-only">Filtrar y ordenar ofertas</legend>
+        <div class="campo">
+          <label for="filtroTexto">Buscar</label>
+          <input type="text" id="filtroTexto" placeholder="Puesto o empresa...">
+        </div>
+        <div class="campo">
+          <label for="filtroRol">Rol</label>
+          <div class="multi" data-campo="rol">
+            <button type="button" class="multi-btn" id="filtroRol" aria-haspopup="true" aria-expanded="false">Todos</button>
+            <div class="multi-panel" role="group" aria-label="Opciones de Rol"></div>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="filtroPerfil">Perfil / Seniority</label>
+          <div class="multi" data-campo="perfil">
+            <button type="button" class="multi-btn" id="filtroPerfil" aria-haspopup="true" aria-expanded="false">Todos</button>
+            <div class="multi-panel" role="group" aria-label="Opciones de Perfil / Seniority"></div>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="filtroModalidad">Modalidad</label>
+          <div class="multi" data-campo="modalidad">
+            <button type="button" class="multi-btn" id="filtroModalidad" aria-haspopup="true" aria-expanded="false">Todos</button>
+            <div class="multi-panel" role="group" aria-label="Opciones de Modalidad"></div>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="filtroUbicacion">Ubicación</label>
+          <select id="filtroUbicacion"><option value="">Todas</option></select>
+        </div>
+        <div class="campo">
+          <label for="ordenSelect">Ordenar por</label>
+          <select id="ordenSelect">
+            <option value="reciente">Más recientes</option>
+            <option value="vencimiento">Próximas a vencer</option>
+            <option value="puesto">Puesto (A-Z)</option>
+            <option value="empresa">Empresa (A-Z)</option>
+          </select>
+        </div>
+      </fieldset>
+      <p id="resultadosInfo" class="resultados-info" aria-live="polite"></p>
+      <main>
+        <div id="contenedor" class="cards" aria-live="polite">
+          <p class="loading">Cargando ofertas...</p>
+        </div>
+      </main>
+    </div>
+    <div id="vistaGuardados" class="vista-oculta">
+      <div class="destacadas-section">
+        <h2>Mis guardados</h2>
+        <div id="contenedorGuardados" class="cards"></div>
+      </div>
+    </div>
+    <div id="vistaPostulaciones" class="vista-oculta">
+      <div class="destacadas-section">
+        <h2>Mis postulaciones</h2>
+        <div id="contenedorPostulaciones" class="cards"></div>
+      </div>
+    </div>
+    <footer class="pie">
+      <div class="pie-inner">
+        <p class="pie-texto">XAcademy es un programa de <a href="https://www.technologywithpurpose.org" target="_blank" rel="noopener">Technology with Purpose Foundation</a></p>
+        <nav class="pie-links" aria-label="Sitio y redes de la Fundación">
+          <a href="https://www.technologywithpurpose.org" target="_blank" rel="noopener">Sitio web</a>
+          <a href="https://www.linkedin.com/company/technologywithpurpose/" target="_blank" rel="noopener">LinkedIn</a>
+          <a href="https://www.instagram.com/technologywithpurpose/" target="_blank" rel="noopener">Instagram</a>
+          <a href="mailto:programa.xacademy@technologywithpurpose.org">Escribinos</a>
+        </nav>
+      </div>
+    </footer>
+  </div>
+  <script>
+    let todasLasOfertas = [];
+    let contadorCard = 0;
+    const CLAVE_GUARDADOS = 'xacademy_guardados';
+    const CLAVE_POSTULACIONES = 'xacademy_postulaciones';
+    const ESTADOS_POSTULACION = ['Postulado', 'Contactado', 'Entrevista', 'Seleccionado', 'No seleccionado', 'Retirado', 'Rechazado'];
+    const NO_ESPECIFICADO = 'No especificado';
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str == null ? '' : String(str);
+      return div.innerHTML;
+    }
+    function claveOferta(o) { return o.empresa + '|' + o.puesto + '|' + o.rowIndex; }
+    function getGuardados() {
+      try { return JSON.parse(localStorage.getItem(CLAVE_GUARDADOS)) || []; }
+      catch (e) { return []; }
+    }
+    function setGuardados(arr) { localStorage.setItem(CLAVE_GUARDADOS, JSON.stringify(arr)); }
+    function getPostulaciones() {
+      try { return JSON.parse(localStorage.getItem(CLAVE_POSTULACIONES)) || {}; }
+      catch (e) { return {}; }
+    }
+    function setPostulaciones(obj) { localStorage.setItem(CLAVE_POSTULACIONES, JSON.stringify(obj)); }
+    const CLAVE_ENTREVISTAS = 'xacademy_entrevistas';
+    function getEntrevistas() {
+      try { return JSON.parse(localStorage.getItem(CLAVE_ENTREVISTAS)) || []; }
+      catch (e) { return []; }
+    }
+    function setEntrevistas(arr) { try { localStorage.setItem(CLAVE_ENTREVISTAS, JSON.stringify(arr)); } catch (e) {} }
+    const CLAVE_VISITANTE = 'xacademy_visitante';
+    function getVisitante() {
+      try {
+        let id = localStorage.getItem(CLAVE_VISITANTE);
+        if (!id) {
+          id = 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+          localStorage.setItem(CLAVE_VISITANTE, id);
+        }
+        return id;
+      } catch (e) { return ''; }
+    }
+    function registrar(accion, claveOf) {
+      const o = todasLasOfertas.find(x => claveOferta(x) === claveOf);
+      if (!o) return;
+      try {
+        google.script.run.withFailureHandler(function () {}).registrarEvento({
+          accion: accion, fila: o.rowIndex, empresa: o.empresa, puesto: o.puesto,
+          rol: o.rol, link: o.link, visitante: getVisitante()
+        });
+      } catch (e) {}
+    }
+    window.registrar = registrar;
+    function toggleGuardado(claveOf) {
+      let guardados = getGuardados();
+      if (guardados.includes(claveOf)) {
+        guardados = guardados.filter(k => k !== claveOf);
+      } else {
+        guardados.push(claveOf);
+        registrar('guardado', claveOf);
+      }
+      setGuardados(guardados);
+      renderTodo();
+    }
+    window.toggleGuardado = toggleGuardado;
+    function marcarComoPostulado(claveOf) {
+      const post = getPostulaciones();
+      post[claveOf] = 'Postulado';
+      registrar('postulado', claveOf);
+      setPostulaciones(post);
+      renderTodo();
+    }
+    window.marcarComoPostulado = marcarComoPostulado;
+    function marcarEntrevista(claveOf) {
+      const lista = getEntrevistas();
+      if (!lista.includes(claveOf)) { lista.push(claveOf); setEntrevistas(lista); }
+      registrar('entrevista', claveOf);
+      renderTodo();
+    }
+    window.marcarEntrevista = marcarEntrevista;
+    function cambiarEstadoPostulacion(claveOf, nuevoEstado) {
+      const post = getPostulaciones();
+      post[claveOf] = nuevoEstado;
+      if (nuevoEstado === 'Entrevista') {
+        const lista = getEntrevistas();
+        if (!lista.includes(claveOf)) { lista.push(claveOf); setEntrevistas(lista); }
+        registrar('entrevista', claveOf);
+      }
+      setPostulaciones(post);
+      renderTodo();
+    }
+    window.cambiarEstadoPostulacion = cambiarEstadoPostulacion;
+    function quitarDePostulaciones(claveOf) {
+      const post = getPostulaciones();
+      delete post[claveOf];
+      setPostulaciones(post);
+      renderTodo();
+    }
+    window.quitarDePostulaciones = quitarDePostulaciones;
+    function toggleDetalle(id) {
+      const div = document.getElementById('detalle-' + id);
+      const btn = document.getElementById('btnvermas-' + id);
+      const abierto = div.classList.toggle('abierto');
+      btn.textContent = abierto ? 'Ver menos ↑' : 'Ver más ↓';
+    }
+    window.toggleDetalle = toggleDetalle;
+    function cambiarVista(vista) {
+      ['navTodas', 'navGuardados', 'navPostulaciones'].forEach(id => document.getElementById(id).classList.remove('activo'));
+      ['vistaTodas', 'vistaGuardados', 'vistaPostulaciones'].forEach(id => document.getElementById(id).classList.add('vista-oculta'));
+      if (vista === 'todas') {
+        document.getElementById('navTodas').classList.add('activo');
+        document.getElementById('vistaTodas').classList.remove('vista-oculta');
+      } else if (vista === 'guardados') {
+        document.getElementById('navGuardados').classList.add('activo');
+        document.getElementById('vistaGuardados').classList.remove('vista-oculta');
+        renderGuardados();
+      } else {
+        document.getElementById('navPostulaciones').classList.add('activo');
+        document.getElementById('vistaPostulaciones').classList.remove('vista-oculta');
+        renderPostulaciones();
+      }
+    }
+    window.cambiarVista = cambiarVista;
+    function limpiarFiltros() {
+      document.getElementById('filtroTexto').value = '';
+      Object.keys(FILTROS_MULTI).forEach(campo => {
+        opcionesSeleccionadas[campo] = [];
+        actualizarFiltroMulti(campo);
+      });
+      document.getElementById('filtroUbicacion').value = '';
+      document.getElementById('ordenSelect').value = 'reciente';
+      render();
+      document.getElementById('filtroTexto').focus();
+    }
+    window.limpiarFiltros = limpiarFiltros;
+    // ---------- FILTROS DE SELECCIÓN MÚLTIPLE (Rol, Perfil / Seniority, Modalidad) ----------
+    // opcionesDisponibles: valores individuales leídos de la hoja "Ofertas" (getOpcionesFiltros).
+    //   Se cargan una sola vez y NO cambian cuando la persona selecciona opciones.
+    // opcionesSeleccionadas: lo que eligió la persona, siempre como array de valores individuales.
+    //   Array vacío = "Todos" (ese filtro no se aplica).
+    // Dentro de un filtro las opciones se combinan con OR; entre filtros, con AND (ver render()).
+    const FILTROS_MULTI = { rol: 'filtroRol', perfil: 'filtroPerfil', modalidad: 'filtroModalidad' };
+    const opcionesDisponibles = { rol: [], perfil: [], modalidad: [] };
+    const opcionesSeleccionadas = { rol: [], perfil: [], modalidad: [] };
+    let usarRespaldoOpciones = false;
+    // Una celda de la hoja puede tener varios valores ("QA Manual, QA AI"): se separan en valores individuales.
+    function separarValores(texto) {
+      return String(texto == null ? '' : texto).split(',').map(v => v.trim()).filter(v => v !== '');
+    }
+    // La oferta cumple el filtro si alguno de sus valores está entre los seleccionados (OR).
+    function cumpleFiltro(o, campo) {
+      const elegidas = opcionesSeleccionadas[campo];
+      if (elegidas.length === 0) return true;
+      return separarValores(o[campo]).some(v => elegidas.includes(v));
+    }
+    function contenedorMulti(campo) {
+      return document.getElementById(FILTROS_MULTI[campo]).parentNode;
+    }
+    function construirFiltroMulti(campo) {
+      const panel = contenedorMulti(campo).querySelector('.multi-panel');
+      panel.innerHTML = '';
+      const agregarOpcion = (valor, esTodos) => {
+        const label = document.createElement('label');
+        if (esTodos) label.className = 'opcion-todos';
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.value = valor;
+        if (esTodos) check.dataset.todos = '1';
+        check.addEventListener('change', () => cambiarOpcionMulti(campo, check));
+        label.appendChild(check);
+        label.appendChild(document.createTextNode(esTodos ? 'Todos' : valor));
+        panel.appendChild(label);
+      };
+      agregarOpcion('', true);
+      opcionesDisponibles[campo].forEach(v => agregarOpcion(v, false));
+      // Si una opción seleccionada ya no existe en la hoja, se descarta.
+      opcionesSeleccionadas[campo] = opcionesSeleccionadas[campo].filter(v => opcionesDisponibles[campo].includes(v));
+      actualizarFiltroMulti(campo);
+    }
+    function cambiarOpcionMulti(campo, check) {
+      if (check.dataset.todos) {
+        // "Todos" limpia las selecciones específicas de este filtro.
+        opcionesSeleccionadas[campo] = [];
+      } else if (check.checked) {
+        // Agregar una opción no reemplaza a las otras.
+        if (!opcionesSeleccionadas[campo].includes(check.value)) opcionesSeleccionadas[campo].push(check.value);
+      } else {
+        opcionesSeleccionadas[campo] = opcionesSeleccionadas[campo].filter(v => v !== check.value);
+      }
+      actualizarFiltroMulti(campo);
+      render();
+    }
+    function actualizarFiltroMulti(campo) {
+      const elegidas = opcionesSeleccionadas[campo];
+      contenedorMulti(campo).querySelectorAll('input[type="checkbox"]').forEach(c => {
+        c.checked = c.dataset.todos ? elegidas.length === 0 : elegidas.includes(c.value);
+      });
+      const btn = document.getElementById(FILTROS_MULTI[campo]);
+      btn.textContent = elegidas.length === 0 ? 'Todos'
+        : (elegidas.length === 1 ? elegidas[0] : elegidas.length + ' seleccionados');
+      btn.classList.toggle('con-seleccion', elegidas.length > 0);
+    }
+    function cerrarFiltrosMulti(excepto) {
+      document.querySelectorAll('.multi.abierto').forEach(m => {
+        if (m === excepto) return;
+        m.classList.remove('abierto');
+        m.querySelector('.multi-btn').setAttribute('aria-expanded', 'false');
+      });
+    }
+    function cargarOpcionesFiltros(opciones) {
+      Object.keys(FILTROS_MULTI).forEach(campo => {
+        opcionesDisponibles[campo] = (opciones && Array.isArray(opciones[campo])) ? opciones[campo].slice() : [];
+        construirFiltroMulti(campo);
+      });
+    }
+    // Respaldo por si falla la lectura de opciones: se arman con los valores individuales de las ofertas cargadas.
+    function opcionesDesdeOfertas() {
+      const resultado = {};
+      Object.keys(FILTROS_MULTI).forEach(campo => {
+        const unicos = [];
+        todasLasOfertas.forEach(o => separarValores(o[campo]).forEach(v => { if (!unicos.includes(v)) unicos.push(v); }));
+        resultado[campo] = unicos.sort((a, b) => a === NO_ESPECIFICADO ? 1 : (b === NO_ESPECIFICADO ? -1 : a.localeCompare(b, 'es')));
+      });
+      return resultado;
+    }
+    Object.keys(FILTROS_MULTI).forEach(campo => {
+      const btn = document.getElementById(FILTROS_MULTI[campo]);
+      btn.addEventListener('click', () => {
+        const cont = btn.parentNode;
+        const abrir = !cont.classList.contains('abierto');
+        cerrarFiltrosMulti(cont);
+        cont.classList.toggle('abierto', abrir);
+        btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+      });
+      construirFiltroMulti(campo);
+    });
+    document.addEventListener('click', ev => { if (!ev.target.closest('.multi')) cerrarFiltrosMulti(null); });
+    document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarFiltrosMulti(null); });
+    // ---------- HELPERS DE CONTENIDO ----------
+    function chip(valor) {
+      return `<span>${escapeHtml(valor)}</span>`;
+    }
+    function detalleItem(label, valor) {
+      return `<div class="detalle-item"><b>${escapeHtml(label)}:</b> ${escapeHtml(valor)}</div>`;
+    }
+    function textoVencimiento(o) {
+      const publicada = o.fechaCargaTexto ? `Publicada el ${o.fechaCargaTexto}` : 'Publicada recientemente';
+      if (o.diasRestantes === 0) return { texto: `${publicada} · Último día para postularte`, urgente: true };
+      if (o.diasRestantes === 1) return { texto: `${publicada} · Cierra mañana`, urgente: true };
+      if (o.proximaAVencer) return { texto: `${publicada} · Cierra en ${o.diasRestantes} días`, urgente: true };
+      return { texto: publicada, urgente: false };
+    }
+    // contexto: 'general' | 'guardados' | 'postulaciones'
+    function tarjetaHtml(o, contexto) {
+      contexto = contexto || 'general';
+      contadorCard++;
+      const idCard = contadorCard;
+      const guardados = getGuardados();
+      const claveOf = claveOferta(o);
+      const claveJs = claveOf.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const estaGuardado = guardados.includes(claveOf);
+      const postulaciones = getPostulaciones();
+      const estadoPostulacion = postulaciones[claveOf] || '';
+      const tuvoEntrevista = getEntrevistas().includes(claveOf);
+      const entrevistaHtml = tuvoEntrevista
+        ? `<span class="badge-entrevista">🎉 ¡Qué bueno! Gracias por contarnos</span>`
+        : `<button type="button" class="btn-entrevista" onclick="marcarEntrevista('${claveJs}')" aria-label="Conseguí una entrevista en ${escapeHtml(o.puesto)} de ${escapeHtml(o.empresa)}">🎉 ¡Conseguí una entrevista!</button>`;
+      const venc = textoVencimiento(o);
+      const chips = [
+        chip(o.rol),
+        chip(o.perfil),
+        chip(o.modalidad),
+        chip(o.ubicacion),
+      ].join('');
+      const detallesArr = [];
+      if (o.descripcion !== NO_ESPECIFICADO) detallesArr.push(detalleItem('Descripción', o.descripcion));
+      if (o.requisitos !== NO_ESPECIFICADO) detallesArr.push(detalleItem('Requisitos', o.requisitos));
+      if (o.tecnologias !== NO_ESPECIFICADO) detallesArr.push(detalleItem('Tecnologías', o.tecnologias));
+      if (o.ingles !== NO_ESPECIFICADO) detallesArr.push(detalleItem('Inglés', o.ingles));
+      if (o.salario !== NO_ESPECIFICADO) detallesArr.push(detalleItem('Salario', o.salario));
+      if (o.tipoContratacion !== NO_ESPECIFICADO) detallesArr.push(detalleItem('Tipo de contratación', o.tipoContratacion));
+      if (o.jornada !== NO_ESPECIFICADO) detallesArr.push(detalleItem('Jornada', o.jornada));
+      if (o.incorporacion !== NO_ESPECIFICADO) detallesArr.push(detalleItem('Incorporación', o.incorporacion));
+      const tieneDetalle = detallesArr.length > 0;
+      let acciones = '';
+      if (contexto === 'general') {
+        acciones = `
+          <a class="btn" href="${escapeHtml(o.link)}" target="_blank" rel="noopener" onclick="registrar('ver_oferta', '${claveJs}')" aria-label="Ver oferta: ${escapeHtml(o.puesto)} en ${escapeHtml(o.empresa)} (se abre en una pestaña nueva)">Ver oferta →</a>
+          <button type="button" class="btn-guardar ${estaGuardado ? 'guardado' : ''}" onclick="toggleGuardado('${claveJs}')">
+            ${estaGuardado ? '★ Guardado' : '☆ Guardar'}
+          </button>
+          ${entrevistaHtml}
+        `;
+      } else if (contexto === 'guardados') {
+        acciones = `
+          <a class="btn" href="${escapeHtml(o.link)}" target="_blank" rel="noopener" onclick="registrar('ver_oferta', '${claveJs}')">Ver oferta →</a>
+          <button type="button" class="btn-guardar guardado" onclick="toggleGuardado('${claveJs}')">★ Quitar de guardados</button>
+          ${estadoPostulacion
+            ? `<span class="badge-postulado">✓ Postulado</span>`
+            : `<button type="button" class="btn-postular" onclick="marcarComoPostulado('${claveJs}')">Marcar como Postulado</button>`}
+          ${entrevistaHtml}
+        `;
+      } else {
+        acciones = `
+          <a class="btn" href="${escapeHtml(o.link)}" target="_blank" rel="noopener" onclick="registrar('ver_oferta', '${claveJs}')">Ver oferta →</a>
+          <select class="estado-postulacion" onchange="cambiarEstadoPostulacion('${claveJs}', this.value)" aria-label="Estado de postulación">
+            ${ESTADOS_POSTULACION.map(e => `<option value="${e}" ${e === estadoPostulacion ? 'selected' : ''}>${e}</option>`).join('')}
+          </select>
+          <button type="button" class="btn-quitar" onclick="quitarDePostulaciones('${claveJs}')">Quitar</button>
+          ${entrevistaHtml}
+        `;
+      }
+      return `
+        <article class="card ${venc.urgente ? 'urgente' : ''}">
+          <h2>${escapeHtml(o.puesto)}</h2>
+          <p class="empresa">${escapeHtml(o.empresa)}</p>
+          <div class="chips">${chips}</div>
+          <p class="vencimiento ${venc.urgente ? 'urgente' : ''}">${venc.texto}</p>
+          ${tieneDetalle ? `
+            <button type="button" class="btn-vermas" id="btnvermas-${idCard}" onclick="toggleDetalle(${idCard})">Ver más ↓</button>
+            <div class="detalle" id="detalle-${idCard}">${detallesArr.join('')}</div>
+          ` : ''}
+          <div class="acciones-card">${acciones}</div>
+        </article>
+      `;
+    }
+    // ---------- RENDER ----------
+    function render() {
+      const ubicacion = document.getElementById('filtroUbicacion').value;
+      const orden = document.getElementById('ordenSelect').value;
+      const texto = document.getElementById('filtroTexto').value.trim().toLowerCase();
+      let filtradas = todasLasOfertas.filter(o => {
+        const matchRol = cumpleFiltro(o, 'rol');
+        const matchPerfil = cumpleFiltro(o, 'perfil');
+        const matchModalidad = cumpleFiltro(o, 'modalidad');
+        const matchUbicacion = !ubicacion || o.ubicacion === ubicacion;
+        const matchTexto = !texto || (o.puesto + ' ' + o.empresa).toLowerCase().includes(texto);
+        return matchRol && matchPerfil && matchModalidad && matchUbicacion && matchTexto;
+      });
+      if (orden === 'puesto') {
+        filtradas = filtradas.slice().sort((a, b) => a.puesto.localeCompare(b.puesto, 'es'));
+      } else if (orden === 'empresa') {
+        filtradas = filtradas.slice().sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'));
+      } else if (orden === 'vencimiento') {
+        filtradas = filtradas.slice().sort((a, b) => {
+          const da = a.diasRestantes === null ? Infinity : a.diasRestantes;
+          const db = b.diasRestantes === null ? Infinity : b.diasRestantes;
+          return da - db;
+        });
+      } else {
+        filtradas = filtradas.slice().sort((a, b) =>
+          String(b.fechaCargaISO || '').localeCompare(String(a.fechaCargaISO || '')) || (b.rowIndex - a.rowIndex));
+      }
+      const contenedor = document.getElementById('contenedor');
+      const info = document.getElementById('resultadosInfo');
+      if (todasLasOfertas.length === 0) {
+        contenedor.innerHTML = '<p class="empty"><strong>Todavía no hay ofertas cargadas.</strong>Volvé a revisar más adelante.</p>';
+        info.textContent = '';
+        return;
+      }
+      if (filtradas.length === 0) {
+        contenedor.innerHTML = `
+          <p class="empty">
+            <strong>No encontramos ofertas con esa búsqueda.</strong>
+            Probá con otras palabras clave o quitá algún filtro.
+            <br><button type="button" onclick="limpiarFiltros()">Limpiar filtros</button>
+          </p>`;
+        info.textContent = 'Sin resultados para los filtros seleccionados.';
+        return;
+      }
+      info.textContent = `Mostrando ${filtradas.length} de ${todasLasOfertas.length} oferta${todasLasOfertas.length === 1 ? '' : 's'}.`;
+      contenedor.innerHTML = filtradas.map(o => tarjetaHtml(o, 'general')).join('');
+    }
+    function renderProximas() {
+      const section = document.getElementById('proximasSection');
+      const urgentes = todasLasOfertas
+        .filter(o => o.proximaAVencer)
+        .sort((a, b) => a.diasRestantes - b.diasRestantes)
+        .slice(0, 4);
+      if (urgentes.length === 0) { section.style.display = 'none'; return; }
+      section.style.display = '';
+      section.innerHTML = `
+        <h2>⏰ Próximas a vencer</h2>
+        <p class="sub-mini">Estas búsquedas cierran pronto.</p>
+        <div class="destacadas-cards">${urgentes.map(o => tarjetaHtml(o, 'general')).join('')}</div>
+      `;
+    }
+    function renderDashboard(datos) {
+      const section = document.getElementById('dashboardSection');
+      section.style.display = '';
+      section.innerHTML = `
+        <h2>Panorama de la Bolsa</h2>
+        <div class="dashboard-grid">
+          <div class="dashboard-stat">
+            <div class="valor">${datos.busquedasActivas}</div>
+            <div class="label">Búsquedas activas</div>
+          </div>
+          <div class="dashboard-stat">
+            <div class="valor">${datos.proximasAVencer}</div>
+            <div class="label">Próximas a vencer</div>
+          </div>
+        </div>
+        <div class="dashboard-tendencias">
+          <b>Tendencia: rol más solicitado</b>
+          ${datos.tendencias ? escapeHtml(datos.tendencias) : '<span class="no-disp">No disponible</span>'}
+        </div>
+        <div class="dashboard-skills">
+          <h3>Skills más buscadas</h3>
+          ${datos.skills.length
+            ? `<div class="chips">${datos.skills.map(s => `<span class="chip">${escapeHtml(s)}</span>`).join('')}</div>`
+            : `<span class="no-disp">No disponible</span>`}
+        </div>
+      `;
+    }
+    function renderGuardados() {
+      const guardados = getGuardados();
+      const ofertas = todasLasOfertas.filter(o => guardados.includes(claveOferta(o)));
+      const cont = document.getElementById('contenedorGuardados');
+      if (ofertas.length === 0) {
+        cont.innerHTML = '<p class="empty"><strong>Todavía no guardaste ninguna oferta.</strong>Tocá "Guardar" en la oferta que te interese.</p>';
+        return;
+      }
+      cont.innerHTML = ofertas.map(o => tarjetaHtml(o, 'guardados')).join('');
+    }
+    function renderPostulaciones() {
+      const post = getPostulaciones();
+      const claves = Object.keys(post);
+      const ofertas = todasLasOfertas.filter(o => claves.includes(claveOferta(o)));
+      const cont = document.getElementById('contenedorPostulaciones');
+      if (ofertas.length === 0) {
+        cont.innerHTML = '<p class="empty"><strong>Todavía no registraste postulaciones.</strong>Guardá una oferta y marcala como "Postulado".</p>';
+        return;
+      }
+      cont.innerHTML = ofertas.map(o => tarjetaHtml(o, 'postulaciones')).join('');
+    }
+    function renderTodo() {
+      render();
+      renderProximas();
+      if (!document.getElementById('vistaGuardados').classList.contains('vista-oculta')) renderGuardados();
+      if (!document.getElementById('vistaPostulaciones').classList.contains('vista-oculta')) renderPostulaciones();
+    }
+    function poblarSelect(selectId, campo) {
+      const valores = [...new Set(todasLasOfertas.map(o => o[campo]).filter(v => v && v !== NO_ESPECIFICADO))]
+        .sort((a, b) => a.localeCompare(b, 'es'));
+      const select = document.getElementById(selectId);
+      valores.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        select.appendChild(opt);
+      });
+    }
+    ['filtroUbicacion', 'ordenSelect']
+      .forEach(id => document.getElementById(id).addEventListener('change', render));
+    document.getElementById('filtroTexto').addEventListener('input', render);
+    google.script.run
+      .withSuccessHandler(function(ofertas) {
+        todasLasOfertas = ofertas;
+        if (usarRespaldoOpciones) cargarOpcionesFiltros(opcionesDesdeOfertas());
+        poblarSelect('filtroUbicacion', 'ubicacion');
+        render();
+        renderProximas();
+      })
+      .withFailureHandler(function(err) {
+        document.getElementById('contenedor').innerHTML = '<p class="empty"><strong>Ocurrió un error al cargar las ofertas.</strong>Probá recargando la página.</p>';
+      })
+      .getOfertasPublicas();
+    google.script.run
+      .withSuccessHandler(cargarOpcionesFiltros)
+      .withFailureHandler(function() {
+        usarRespaldoOpciones = true;
+        if (todasLasOfertas.length) cargarOpcionesFiltros(opcionesDesdeOfertas());
+      })
+      .getOpcionesFiltros();
+    google.script.run
+      .withSuccessHandler(renderDashboard)
+      .withFailureHandler(function() {})
+      .getEstadisticas();
+  </script>
+</body>
+</html>
