@@ -52,6 +52,7 @@
     .header p.contacto { margin-top: 10px; font-size: 13px; color: #5B5566; }
     .header p.contacto a, .pie a.pie-mail { color: #6B21D8; font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
     .header p.contacto a:hover { text-decoration: underline; }
+    .header p.disclaimer { margin-top: 8px; font-size: 12px; color: #8C939C; font-style: italic; }
     .card button.btn-entrevista { flex-basis: 100%; background: #F7F4FD; border: 1px dashed #6B21D8; color: #6B21D8; font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-family: 'Inter', Arial, sans-serif; }
     .card button.btn-entrevista:hover { background: #EFE8FC; }
     .card .badge-entrevista { flex-basis: 100%; font-size: 12.5px; font-weight: 700; color: #1a7a3c; background: #EAF6EE; border-radius: 8px; padding: 8px 12px; text-align: center; }
@@ -175,6 +176,7 @@
       <h1>Directorio de oportunidades laborales</h1>
       <p>Buscamos algunas oportunidades para nuestros egresados que tal vez te puedan interesar, miralas y contanos si te sirven.</p>
       <p class="contacto">¿Conseguiste una entrevista? Tocá <strong>«¡Conseguí una entrevista!»</strong> en la oferta o escribinos a <a href="mailto:programa.xacademy@technologywithpurpose.org">programa.xacademy@technologywithpurpose.org</a></p>
+      <p class="disclaimer">Esta es una curaduría de oportunidades publicadas por terceros: la Fundación Tecnología con Propósito no es la empleadora ni interviene en el proceso de selección. Cada postulación se hace directamente con la empresa, a través del link de la oferta.</p>
     </div>
     <div id="vistaTodas">
       <div id="dashboardSection" class="dashboard-section" style="display:none;"></div>
@@ -523,14 +525,54 @@
       });
       return resultado;
     }
+    // Devuelve los checkboxes visibles del panel, en el orden en que aparecen ("Todos" primero).
+    function checkboxesDelPanel(cont) {
+      return Array.from(cont.querySelectorAll('.multi-panel input[type="checkbox"]'));
+    }
+    function abrirPanelMulti(cont, btn) {
+      cerrarFiltrosMulti(cont);
+      cont.classList.add('abierto');
+      btn.setAttribute('aria-expanded', 'true');
+    }
     Object.keys(FILTROS_MULTI).forEach(campo => {
       const btn = document.getElementById(FILTROS_MULTI[campo]);
+      const cont = btn.parentNode;
       btn.addEventListener('click', () => {
-        const cont = btn.parentNode;
         const abrir = !cont.classList.contains('abierto');
         cerrarFiltrosMulti(cont);
         cont.classList.toggle('abierto', abrir);
         btn.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+      });
+      // Teclado en el botón: flecha abajo/arriba abre el panel y lleva el foco a la primera/última opción.
+      btn.addEventListener('keydown', ev => {
+        if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+        ev.preventDefault();
+        abrirPanelMulti(cont, btn);
+        const checks = checkboxesDelPanel(cont);
+        if (checks.length) checks[ev.key === 'ArrowDown' ? 0 : checks.length - 1].focus();
+      });
+      // Teclado dentro del panel: flechas mueven el foco entre opciones, Home/End van al extremo,
+      // Escape cierra y devuelve el foco al botón (además del cierre global de abajo).
+      cont.querySelector('.multi-panel').addEventListener('keydown', ev => {
+        const checks = checkboxesDelPanel(cont);
+        const actual = checks.indexOf(document.activeElement);
+        if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
+          ev.preventDefault();
+          if (actual === -1) { checks[0] && checks[0].focus(); return; }
+          const siguiente = ev.key === 'ArrowDown'
+            ? (actual + 1) % checks.length
+            : (actual - 1 + checks.length) % checks.length;
+          checks[siguiente].focus();
+        } else if (ev.key === 'Home') {
+          ev.preventDefault();
+          checks[0] && checks[0].focus();
+        } else if (ev.key === 'End') {
+          ev.preventDefault();
+          checks[checks.length - 1] && checks[checks.length - 1].focus();
+        } else if (ev.key === 'Escape') {
+          cerrarFiltrosMulti(null);
+          btn.focus();
+        }
       });
       construirFiltroMulti(campo);
     });
@@ -624,6 +666,18 @@
         </article>
       `;
     }
+    // Texto sobre el que busca el campo "Buscar": puesto, empresa, rol/perfil/modalidad/ubicación
+    // y los campos de detalle (tecnologías, requisitos, descripción), así "React" o "remoto"
+    // también encuentran coincidencias aunque no aparezcan en el título de la tarjeta.
+    function textoBusquedaOferta(o) {
+      if (o._textoBusqueda) return o._textoBusqueda;
+      const campos = ['puesto', 'empresa', 'rol', 'perfil', 'modalidad', 'ubicacion', 'tecnologias', 'requisitos', 'descripcion'];
+      o._textoBusqueda = campos
+        .map(c => (o[c] && o[c] !== NO_ESPECIFICADO) ? o[c] : '')
+        .join(' ')
+        .toLowerCase();
+      return o._textoBusqueda;
+    }
     // ---------- RENDER ----------
     function render() {
       const ubicacion = document.getElementById('filtroUbicacion').value;
@@ -634,7 +688,7 @@
         const matchPerfil = cumpleFiltro(o, 'perfil');
         const matchModalidad = cumpleFiltro(o, 'modalidad');
         const matchUbicacion = !ubicacion || o.ubicacion === ubicacion;
-        const matchTexto = !texto || (o.puesto + ' ' + o.empresa).toLowerCase().includes(texto);
+        const matchTexto = !texto || textoBusquedaOferta(o).includes(texto);
         return matchRol && matchPerfil && matchModalidad && matchUbicacion && matchTexto;
       });
       if (orden === 'puesto') {
