@@ -263,7 +263,56 @@
       div.textContent = str == null ? '' : String(str);
       return div.innerHTML;
     }
-    function claveOferta(o) { return o.empresa + '|' + o.puesto + '|' + o.rowIndex; }
+    // ID ESTABLE: cuando el backend manda o.id (inmutable, no cambia si se reordena
+    // o borra una fila de la planilla), lo usamos como clave. Si todavía no lo manda
+    // (versión vieja del Code.gs), caemos al formato viejo basado en rowIndex.
+    // Esto es intencionalmente retrocompatible: el día que el backend empiece a
+    // devolver o.id, migrarClavesAntiguas() reescribe lo ya guardado una sola vez.
+    function claveOferta(o) {
+      if (o.id) return 'id:' + o.id;
+      return claveOfertaLegacy(o);
+    }
+    function claveOfertaLegacy(o) { return o.empresa + '|' + o.puesto + '|' + o.rowIndex; }
+    // Reescribe guardados/postulaciones/entrevistas que todavía usan la clave vieja
+    // (empresa|puesto|rowIndex) a la nueva clave estable (id:...), para las ofertas
+    // que ya tienen id. Se corre una vez al cargar los datos, antes de cualquier render.
+    function migrarClavesAntiguas() {
+      const ofertasConId = todasLasOfertas.filter(o => o.id);
+      if (ofertasConId.length === 0) return; // backend viejo: nada para migrar todavía
+
+      const mapaLegacyANueva = new Map();
+      ofertasConId.forEach(o => mapaLegacyANueva.set(claveOfertaLegacy(o), claveOferta(o)));
+      if (mapaLegacyANueva.size === 0) return;
+
+      let huboCambios = false;
+
+      const guardados = getGuardados();
+      const guardadosMigrados = [...new Set(guardados.map(k => mapaLegacyANueva.get(k) || k))];
+      if (JSON.stringify(guardados) !== JSON.stringify(guardadosMigrados)) {
+        setGuardados(guardadosMigrados);
+        huboCambios = true;
+      }
+
+      const postulaciones = getPostulaciones();
+      const postulacionesMigradas = {};
+      Object.keys(postulaciones).forEach(k => {
+        const nueva = mapaLegacyANueva.get(k) || k;
+        postulacionesMigradas[nueva] = postulaciones[k];
+      });
+      if (JSON.stringify(postulaciones) !== JSON.stringify(postulacionesMigradas)) {
+        setPostulaciones(postulacionesMigradas);
+        huboCambios = true;
+      }
+
+      const entrevistas = getEntrevistas();
+      const entrevistasMigradas = [...new Set(entrevistas.map(k => mapaLegacyANueva.get(k) || k))];
+      if (JSON.stringify(entrevistas) !== JSON.stringify(entrevistasMigradas)) {
+        setEntrevistas(entrevistasMigradas);
+        huboCambios = true;
+      }
+
+      if (huboCambios) console.info('XAcademy: guardados/postulaciones migrados a ID estable.');
+    }
     function getGuardados() {
       try { return JSON.parse(localStorage.getItem(CLAVE_GUARDADOS)) || []; }
       catch (e) { return []; }
@@ -296,7 +345,7 @@
       if (!o) return;
       try {
         google.script.run.withFailureHandler(function () {}).registrarEvento({
-          accion: accion, fila: o.rowIndex, empresa: o.empresa, puesto: o.puesto,
+          accion: accion, id: o.id || '', fila: o.rowIndex, empresa: o.empresa, puesto: o.puesto,
           rol: o.rol, link: o.link, visitante: getVisitante()
         });
       } catch (e) {}
@@ -706,6 +755,7 @@
     google.script.run
       .withSuccessHandler(function(ofertas) {
         todasLasOfertas = ofertas;
+        migrarClavesAntiguas();
         if (usarRespaldoOpciones) cargarOpcionesFiltros(opcionesDesdeOfertas());
         poblarSelect('filtroUbicacion', 'ubicacion');
         render();
