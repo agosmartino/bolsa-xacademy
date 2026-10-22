@@ -129,6 +129,9 @@
     .card button.btn-quitar { background: #FFFFFF; border: 1px solid #D9D9D9; color: #8C939C; font-weight: 500; padding: 9px 12px; }
     .card .badge-postulado { font-size: 12px; font-weight: 700; color: #1a7a3c; }
     .card select.estado-postulacion { font-size: 12px; padding: 7px 8px; border-radius: 8px; border: 1px solid #D9D9D9; }
+    .ver-mas-wrap { grid-column: 1 / -1; text-align: center; margin: 8px 0 24px; }
+    .btn-ver-mas { background: #6B21D8; color: #FFFFFF; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 700; font-family: 'Inter', Arial, sans-serif; cursor: pointer; }
+    .btn-ver-mas:hover { background: #5A1AB8; }
     .empty, .loading { grid-column: 1 / -1; text-align: center; color: #8C939C; font-size: 14px; margin-top: 40px; padding: 0 24px; }
     .empty strong { display: block; color: #14101a; font-size: 15px; margin-bottom: 6px; }
     .empty button { margin-top: 14px; background: #FFFFFF; border: 1px solid #6B21D8; color: #6B21D8; padding: 8px 16px; border-radius: 8px; font-family: 'Inter', Arial, sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -431,7 +434,7 @@
       });
       document.getElementById('filtroUbicacion').value = '';
       document.getElementById('ordenSelect').value = 'reciente';
-      render();
+      renderDesdeCero();
       document.getElementById('filtroTexto').focus();
     }
     window.limpiarFiltros = limpiarFiltros;
@@ -490,7 +493,7 @@
         opcionesSeleccionadas[campo] = opcionesSeleccionadas[campo].filter(v => v !== check.value);
       }
       actualizarFiltroMulti(campo);
-      render();
+      renderDesdeCero();
     }
     function actualizarFiltroMulti(campo) {
       const elegidas = opcionesSeleccionadas[campo];
@@ -722,9 +725,37 @@
         info.textContent = 'Sin resultados para los filtros seleccionados.';
         return;
       }
-      info.textContent = `Mostrando ${filtradas.length} de ${todasLasOfertas.length} oferta${todasLasOfertas.length === 1 ? '' : 's'}.`;
-      contenedor.innerHTML = filtradas.map(o => tarjetaHtml(o, 'general')).join('');
+      const visibles = filtradas.slice(0, ofertasVisibles);
+      const restantes = filtradas.length - visibles.length;
+      info.textContent = `Mostrando ${visibles.length} de ${filtradas.length} oferta${filtradas.length === 1 ? '' : 's'}` +
+        (filtradas.length !== todasLasOfertas.length ? ` (${todasLasOfertas.length} en total)` : '') + '.';
+      contenedor.innerHTML = visibles.map(o => tarjetaHtml(o, 'general')).join('') +
+        (restantes > 0
+          ? `<div class="ver-mas-wrap"><button type="button" class="btn-ver-mas" onclick="verMasOfertas()">Ver más ofertas (${Math.min(restantes, OFERTAS_POR_PAGINA)} de ${restantes} restantes)</button></div>`
+          : '');
     }
+    // Paginación: se muestran OFERTAS_POR_PAGINA tarjetas y el botón suma otras tantas.
+    // Cambiar un filtro/búsqueda/orden vuelve a la primera página (renderDesdeCero);
+    // guardar o postularse re-renderiza SIN perder lo que la persona ya desplegó.
+    const OFERTAS_POR_PAGINA = 12;
+    let ofertasVisibles = OFERTAS_POR_PAGINA;
+    function renderDesdeCero() {
+      ofertasVisibles = OFERTAS_POR_PAGINA;
+      render();
+    }
+    function verMasOfertas() {
+      const primeraNueva = ofertasVisibles;
+      ofertasVisibles += OFERTAS_POR_PAGINA;
+      render();
+      // Accesibilidad: el foco pasa a la primera tarjeta nueva para quien navega con teclado/lector de pantalla.
+      const tarjetas = document.querySelectorAll('#contenedor .card');
+      const nueva = tarjetas[primeraNueva];
+      if (nueva) {
+        nueva.setAttribute('tabindex', '-1');
+        nueva.focus({ preventScroll: false });
+      }
+    }
+    window.verMasOfertas = verMasOfertas;
     function renderProximas() {
       const section = document.getElementById('proximasSection');
       const urgentes = todasLasOfertas
@@ -804,8 +835,8 @@
       });
     }
     ['filtroUbicacion', 'ordenSelect']
-      .forEach(id => document.getElementById(id).addEventListener('change', render));
-    document.getElementById('filtroTexto').addEventListener('input', render);
+      .forEach(id => document.getElementById(id).addEventListener('change', renderDesdeCero));
+    document.getElementById('filtroTexto').addEventListener('input', renderDesdeCero);
     google.script.run
       .withSuccessHandler(function(ofertas) {
         todasLasOfertas = ofertas;
