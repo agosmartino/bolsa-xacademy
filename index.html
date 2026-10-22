@@ -10,7 +10,7 @@
     // Reemplaza a google.script.run, que solo existe dentro de Apps Script.
     (function () {
       var API_URL = 'https://script.google.com/macros/s/AKfycbzuuMIb4O4iaWsAkqSPo7T_PBUeH7fsPrreqhAS955kh70irwTU6-Ovwab4ZEtBWt66Xw/exec';
-      var ACCIONES = { getOfertasPublicas: 'ofertas', getEstadisticas: 'estadisticas', getOpcionesFiltros: 'opciones', registrarEvento: 'evento' };
+      var ACCIONES = { getOfertasPublicas: 'ofertas', getEstadisticas: 'estadisticas', getOpcionesFiltros: 'opciones', registrarEvento: 'evento', registrarFeedback: 'feedback' };
       function crear(ok, fallo) {
         return new Proxy({}, { get: function (_, nombre) {
           if (nombre === 'withSuccessHandler') return function (f) { return crear(f, fallo); };
@@ -19,7 +19,7 @@
           if (!accion) return undefined;
           return function (arg) {
             var url = API_URL + '?api=' + accion;
-            if (accion === 'evento') url += '&data=' + encodeURIComponent(JSON.stringify(arg || {}));
+            if (accion === 'evento' || accion === 'feedback') url += '&data=' + encodeURIComponent(JSON.stringify(arg || {}));
             fetch(url, { redirect: 'follow' })
               .then(function (r) { return r.json(); })
               .then(function (j) { if (!j.ok) throw new Error(j.error || 'Error'); if (ok) ok(j.data); })
@@ -132,6 +132,30 @@
     .ver-mas-wrap { grid-column: 1 / -1; text-align: center; margin: 8px 0 24px; }
     .btn-ver-mas { background: #6B21D8; color: #FFFFFF; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 700; font-family: 'Inter', Arial, sans-serif; cursor: pointer; }
     .btn-ver-mas:hover { background: #5A1AB8; }
+    /* Cuadros de diálogo (entrevista + feedback) y botón flotante de opinión */
+    dialog.dlg { border: 0; border-radius: 18px; padding: 26px 24px 22px; width: min(440px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(20,16,26,0.28); font-family: 'Inter', Arial, sans-serif; color: #14101a; }
+    dialog.dlg::backdrop { background: rgba(20,16,26,0.55); }
+    dialog.dlg h2 { margin: 0 0 8px; font-size: 20px; font-weight: 800; }
+    dialog.dlg p { margin: 0 0 14px; font-size: 13.5px; line-height: 1.5; color: #4a4455; }
+    dialog.dlg label.lbl { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    dialog.dlg input[type="email"], dialog.dlg textarea { width: 100%; padding: 11px 12px; border: 1px solid #D9D9D9; border-radius: 10px; font-family: inherit; font-size: 15px; color: #14101a; }
+    dialog.dlg textarea { min-height: 96px; resize: vertical; }
+    dialog.dlg .legal { font-size: 12px; color: #6a6575; margin: 10px 0 0; }
+    dialog.dlg .dlg-error { color: #b3261e; font-size: 13px; min-height: 18px; margin: 8px 0 0; font-weight: 600; }
+    dialog.dlg .dlg-acciones { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; flex-wrap: wrap; }
+    dialog.dlg .dlg-btn { border: 1px solid #D9D9D9; background: #FFFFFF; color: #14101a; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; }
+    dialog.dlg .dlg-btn.primario { background: #6B21D8; border-color: #6B21D8; color: #FFFFFF; }
+    dialog.dlg .dlg-btn:disabled { opacity: .6; cursor: default; }
+    .estrellas { display: flex; gap: 6px; border: 0; padding: 0; margin: 0 0 14px; }
+    .estrellas legend { font-size: 13px; font-weight: 600; margin-bottom: 8px; padding: 0; }
+    .estrellas label { flex: 1; text-align: center; cursor: pointer; }
+    .estrellas input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .estrellas span { display: block; border: 1px solid #D9D9D9; border-radius: 10px; padding: 8px 0 6px; font-size: 22px; line-height: 1.1; }
+    .estrellas span small { display: block; font-size: 10.5px; color: #6a6575; margin-top: 3px; }
+    .estrellas input:checked + span { background: #F0E9FB; border-color: #6B21D8; }
+    .estrellas input:focus-visible + span { outline: 3px solid #6B53F0; outline-offset: 2px; }
+    .btn-opinion { position: fixed; right: 18px; bottom: 18px; z-index: 30; background: #6B21D8; color: #FFFFFF; border: 0; border-radius: 999px; padding: 12px 18px; font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; box-shadow: 0 6px 20px rgba(107,33,216,0.35); }
+    .btn-opinion:hover { background: #5A1AB8; }
     .empty, .loading { grid-column: 1 / -1; text-align: center; color: #8C939C; font-size: 14px; margin-top: 40px; padding: 0 24px; }
     .empty strong { display: block; color: #14101a; font-size: 15px; margin-bottom: 6px; }
     .empty button { margin-top: 14px; background: #FFFFFF; border: 1px solid #6B21D8; color: #6B21D8; padding: 8px 16px; border-radius: 8px; font-family: 'Inter', Arial, sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; }
@@ -244,6 +268,42 @@
         <div id="contenedorPostulaciones" class="cards"></div>
       </div>
     </div>
+    <button type="button" class="btn-opinion" id="btnOpinion" onclick="abrirFeedback()">💬 Dejanos tu opinión</button>
+    <dialog class="dlg" id="dlgEntrevista" aria-labelledby="dlgEntTitulo">
+      <form method="dialog" id="formEntrevista" novalidate>
+        <h2 id="dlgEntTitulo">¡Qué alegría! 🎉</h2>
+        <p id="dlgEntOferta"></p>
+        <label class="lbl" for="entEmail">Dejanos tu correo para que el equipo de XAcademy pueda acompañarte</label>
+        <input type="email" id="entEmail" autocomplete="email" inputmode="email" required placeholder="tu@correo.com" aria-describedby="entError">
+        <p class="legal">Usamos tu correo solo para ponernos en contacto con vos por esta entrevista. No se publica ni se muestra a otras personas.</p>
+        <p class="dlg-error" id="entError" role="alert"></p>
+        <div class="dlg-acciones">
+          <button type="button" class="dlg-btn" onclick="cerrarDialogo('dlgEntrevista')">Cancelar</button>
+          <button type="submit" class="dlg-btn primario" id="entEnviar">Enviar</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="dlg" id="dlgFeedback" aria-labelledby="dlgFbTitulo">
+      <form method="dialog" id="formFeedback" novalidate>
+        <h2 id="dlgFbTitulo">¿Qué te parece la Bolsa?</h2>
+        <p>Tu opinión es anónima y nos ayuda a mejorarla.</p>
+        <fieldset class="estrellas">
+          <legend>¿Qué tan satisfecho/a estás?</legend>
+          <label><input type="radio" name="satisfaccion" value="1"><span>😞<small>1</small></span></label>
+          <label><input type="radio" name="satisfaccion" value="2"><span>😕<small>2</small></span></label>
+          <label><input type="radio" name="satisfaccion" value="3"><span>😐<small>3</small></span></label>
+          <label><input type="radio" name="satisfaccion" value="4"><span>🙂<small>4</small></span></label>
+          <label><input type="radio" name="satisfaccion" value="5"><span>😍<small>5</small></span></label>
+        </fieldset>
+        <label class="lbl" for="fbComentario">¿Qué mejorarías o qué ideas tenés? (opcional)</label>
+        <textarea id="fbComentario" maxlength="600" placeholder="Contanos..."></textarea>
+        <p class="dlg-error" id="fbError" role="alert"></p>
+        <div class="dlg-acciones">
+          <button type="button" class="dlg-btn" onclick="cerrarDialogo('dlgFeedback')">Cerrar</button>
+          <button type="submit" class="dlg-btn primario" id="fbEnviar">Enviar opinión</button>
+        </div>
+      </form>
+    </dialog>
     <footer class="pie">
       <div class="pie-inner">
         <p class="pie-texto">XAcademy es un programa de <a href="https://www.technologywithpurpose.org" target="_blank" rel="noopener">Technology with Purpose Foundation</a></p>
@@ -376,21 +436,113 @@
       renderTodo();
     }
     window.marcarComoPostulado = marcarComoPostulado;
+    // ---------- ENTREVISTA CON CORREO ----------
+    // Al tocar "¡Conseguí una entrevista!" (o pasar una postulación a "Entrevista") se pide el correo.
+    // Recién cuando el servidor confirma que lo guardó se marca la entrevista en este navegador.
+    const CLAVE_EMAIL = 'xacademy_email';
+    let entrevistaPendiente = null; // { claveOf, desdeEstado }
+    function abrirDialogoEntrevista(claveOf, desdeEstado) {
+      const o = todasLasOfertas.find(x => claveOferta(x) === claveOf);
+      if (!o) return;
+      entrevistaPendiente = { claveOf: claveOf, desdeEstado: !!desdeEstado };
+      document.getElementById('dlgEntOferta').textContent = 'Contanos cómo contactarte por «' + o.puesto + '» en ' + o.empresa + '.';
+      const input = document.getElementById('entEmail');
+      try { input.value = localStorage.getItem(CLAVE_EMAIL) || ''; } catch (e) { input.value = ''; }
+      document.getElementById('entError').textContent = '';
+      document.getElementById('entEnviar').disabled = false;
+      document.getElementById('dlgEntrevista').showModal();
+      input.focus();
+    }
+    function cerrarDialogo(id) {
+      const d = document.getElementById(id);
+      if (d.open) d.close();
+    }
+    window.cerrarDialogo = cerrarDialogo;
+    // Esc o clic en "Cancelar": si no se confirmó, se descarta y el select vuelve a su valor real.
+    document.getElementById('dlgEntrevista').addEventListener('close', function () {
+      if (entrevistaPendiente) { entrevistaPendiente = null; renderTodo(); }
+    });
     function marcarEntrevista(claveOf) {
-      const lista = getEntrevistas();
-      if (!lista.includes(claveOf)) { lista.push(claveOf); setEntrevistas(lista); }
-      registrar('entrevista', claveOf);
-      renderTodo();
+      if (getEntrevistas().includes(claveOf)) return;
+      abrirDialogoEntrevista(claveOf, false);
     }
     window.marcarEntrevista = marcarEntrevista;
+    document.getElementById('formEntrevista').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      if (!entrevistaPendiente) return;
+      const email = document.getElementById('entEmail').value.trim();
+      const error = document.getElementById('entError');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        error.textContent = 'Ingresá un correo válido (por ejemplo, nombre@correo.com).';
+        document.getElementById('entEmail').focus();
+        return;
+      }
+      const { claveOf, desdeEstado } = entrevistaPendiente;
+      const o = todasLasOfertas.find(x => claveOferta(x) === claveOf);
+      if (!o) { cerrarDialogo('dlgEntrevista'); return; }
+      const btn = document.getElementById('entEnviar');
+      btn.disabled = true;
+      error.textContent = 'Enviando...';
+      google.script.run
+        .withSuccessHandler(function (r) {
+          if (!r || !r.ok) { error.textContent = (r && r.error) || 'No pudimos guardar tu correo. Probá de nuevo.'; btn.disabled = false; return; }
+          try { localStorage.setItem(CLAVE_EMAIL, email); } catch (e) {}
+          const lista = getEntrevistas();
+          if (!lista.includes(claveOf)) { lista.push(claveOf); setEntrevistas(lista); }
+          if (desdeEstado) { const post = getPostulaciones(); post[claveOf] = 'Entrevista'; setPostulaciones(post); }
+          entrevistaPendiente = null;
+          document.getElementById('dlgEntrevista').close();
+          renderTodo();
+          const info = document.getElementById('resultadosInfo');
+          if (info) info.textContent = '¡Gracias! Te vamos a escribir al correo que dejaste.';
+        })
+        .withFailureHandler(function () { error.textContent = 'No pudimos conectarnos. Revisá tu conexión y probá de nuevo.'; btn.disabled = false; })
+        .registrarEvento({
+          accion: 'entrevista', email: email, id: o.id || '', fila: o.rowIndex, empresa: o.empresa, puesto: o.puesto,
+          rol: o.rol, link: o.link, visitante: getVisitante()
+        });
+    });
+    // ---------- FEEDBACK DE SATISFACCIÓN ----------
+    const CLAVE_FEEDBACK = 'xacademy_feedback_enviado';
+    function abrirFeedback() {
+      document.getElementById('fbError').textContent = '';
+      document.getElementById('fbEnviar').disabled = false;
+      document.getElementById('dlgFeedback').showModal();
+    }
+    window.abrirFeedback = abrirFeedback;
+    document.getElementById('formFeedback').addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      const marcada = document.querySelector('#formFeedback input[name="satisfaccion"]:checked');
+      const error = document.getElementById('fbError');
+      if (!marcada) { error.textContent = 'Elegí un puntaje del 1 al 5.'; return; }
+      const btn = document.getElementById('fbEnviar');
+      btn.disabled = true;
+      error.textContent = 'Enviando...';
+      google.script.run
+        .withSuccessHandler(function (r) {
+          if (!r || !r.ok) { error.textContent = (r && r.error) || 'No pudimos enviar tu opinión. Probá de nuevo.'; btn.disabled = false; return; }
+          try { localStorage.setItem(CLAVE_FEEDBACK, '1'); } catch (e) {}
+          document.getElementById('formFeedback').reset();
+          document.getElementById('dlgFeedback').close();
+          const info = document.getElementById('resultadosInfo');
+          if (info) info.textContent = '¡Gracias por tu opinión!';
+        })
+        .withFailureHandler(function () { error.textContent = 'No pudimos conectarnos. Probá de nuevo en un rato.'; btn.disabled = false; })
+        .registrarFeedback({
+          satisfaccion: Number(marcada.value),
+          comentario: document.getElementById('fbComentario').value,
+          visitante: getVisitante()
+        });
+    });
     function cambiarEstadoPostulacion(claveOf, nuevoEstado) {
+      if (nuevoEstado === 'Entrevista' && !getEntrevistas().includes(claveOf)) {
+        // Se pide el correo primero; el estado se guarda recién cuando se confirma (ver formEntrevista).
+        renderTodo();
+        abrirDialogoEntrevista(claveOf, true);
+        return;
+      }
       const post = getPostulaciones();
       post[claveOf] = nuevoEstado;
-      if (nuevoEstado === 'Entrevista') {
-        const lista = getEntrevistas();
-        if (!lista.includes(claveOf)) { lista.push(claveOf); setEntrevistas(lista); }
-        registrar('entrevista', claveOf);
-      }
       setPostulaciones(post);
       renderTodo();
     }
