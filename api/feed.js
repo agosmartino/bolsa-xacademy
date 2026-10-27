@@ -82,10 +82,11 @@ function itemRss(o, ahora) {
   ].join('');
 }
 
-function armarRss(ofertas, ahora) {
+function armarRss(ofertas, ahora, limite) {
   const items = ofertas
     .map((o) => ({ o, fecha: fechaPublicacion(o, ahora) }))
     .sort((a, b) => b.fecha - a.fecha)
+    .slice(0, limite > 0 ? limite : undefined)
     .map(({ o }) => itemRss(o, ahora))
     .join('\n');
 
@@ -116,10 +117,12 @@ async function obtenerOfertas() {
 module.exports = async function handler(req, res) {
   try {
     const ofertas = await obtenerOfertas();
+    // ?limite=5 → solo las 5 ofertas más recientes (para el mail mensual)
+    const limite = parseInt((req.query && req.query.limite) || '', 10);
     res.setHeader('Content-Type', 'application/rss+xml; charset=utf-8');
     // Cache de 1 hora en Vercel; Mailchimp lo lee una vez por envío.
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=600');
-    res.status(200).send(armarRss(ofertas, new Date()));
+    res.status(200).send(armarRss(ofertas, new Date(), limite));
   } catch (e) {
     // Si falla, devolvemos error (y no un feed vacío) para que Mailchimp no mande nada.
     res.status(502).send('No se pudo generar el feed: ' + e.message);
