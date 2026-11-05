@@ -129,9 +129,12 @@
     .card button.btn-quitar { background: #FFFFFF; border: 1px solid #D9D9D9; color: #8C939C; font-weight: 500; padding: 9px 12px; }
     .card .badge-postulado { font-size: 12px; font-weight: 700; color: #1a7a3c; }
     .card select.estado-postulacion { font-size: 12px; padding: 7px 8px; border-radius: 8px; border: 1px solid #D9D9D9; }
-    .ver-mas-wrap { grid-column: 1 / -1; text-align: center; margin: 8px 0 24px; }
-    .btn-ver-mas { background: #6B21D8; color: #FFFFFF; border: none; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 700; font-family: 'Inter', Arial, sans-serif; cursor: pointer; }
-    .btn-ver-mas:hover { background: #5A1AB8; }
+    .paginador { grid-column: 1 / -1; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 8px 0 24px; }
+    .pag-btn { min-width: 40px; height: 40px; padding: 0 12px; border: 1px solid #D9D9D9; background: #FFFFFF; color: #14101a; border-radius: 10px; font-size: 14px; font-weight: 700; font-family: 'Inter', Arial, sans-serif; cursor: pointer; }
+    .pag-btn:hover { background: #F0E9FB; border-color: #6B21D8; }
+    .pag-btn.actual { background: #6B21D8; border-color: #6B21D8; color: #FFFFFF; cursor: default; }
+    .pag-puntos { color: #8C939C; padding: 0 4px; }
+    @media (max-width: 480px) { .pag-btn { min-width: 36px; height: 38px; padding: 0 9px; } .pag-btn.pag-nav { flex: 1 1 45%; } }
     /* Cuadros de diálogo (entrevista + feedback) y botón flotante de opinión */
     dialog.dlg { border: 0; border-radius: 18px; padding: 26px 24px 22px; width: min(440px, calc(100vw - 32px)); box-shadow: 0 20px 60px rgba(20,16,26,0.28); font-family: 'Inter', Arial, sans-serif; color: #14101a; }
     dialog.dlg::backdrop { background: rgba(20,16,26,0.55); }
@@ -748,6 +751,9 @@
       return { texto: publicada, urgente: false };
     }
     // contexto: 'general' | 'guardados' | 'postulaciones'
+    // Dónde se ofrece «¡Conseguí una entrevista!». Para volver a mostrarlo en todas las tarjetas:
+    // ['general', 'guardados', 'postulaciones'].
+    const CONTEXTOS_CON_ENTREVISTA = ['postulaciones'];
     function tarjetaHtml(o, contexto) {
       contexto = contexto || 'general';
       contadorCard++;
@@ -759,8 +765,11 @@
       const postulaciones = getPostulaciones();
       const estadoPostulacion = postulaciones[claveOf] || '';
       const tuvoEntrevista = getEntrevistas().includes(claveOf);
+      // El botón "¡Conseguí una entrevista!" solo aparece en las pestañas de CONTEXTOS_CON_ENTREVISTA.
+      // Si la persona ya la marcó, el agradecimiento se ve igual en todas las pestañas.
       const entrevistaHtml = tuvoEntrevista
         ? `<span class="badge-entrevista">🎉 ¡Qué bueno! Gracias por contarnos</span>`
+        : !CONTEXTOS_CON_ENTREVISTA.includes(contexto) ? ''
         : `<button type="button" class="btn-entrevista" onclick="marcarEntrevista('${claveJs}')" aria-label="Conseguí una entrevista en ${escapeHtml(o.puesto)} de ${escapeHtml(o.empresa)}">🎉 ¡Conseguí una entrevista!</button>`;
       const venc = textoVencimiento(o);
       const chips = [
@@ -786,6 +795,9 @@
           <button type="button" class="btn-guardar ${estaGuardado ? 'guardado' : ''}" onclick="toggleGuardado('${claveJs}')">
             ${estaGuardado ? '★ Guardado' : '☆ Guardar'}
           </button>
+          ${estadoPostulacion
+            ? `<span class="badge-postulado">✓ Postulé</span>`
+            : `<button type="button" class="btn-postular" onclick="marcarComoPostulado('${claveJs}')" aria-label="Marcar que me postulé a ${escapeHtml(o.puesto)} en ${escapeHtml(o.empresa)}">Postulé</button>`}
           ${entrevistaHtml}
         `;
       } else if (contexto === 'guardados') {
@@ -793,8 +805,8 @@
           <a class="btn" href="${escapeHtml(o.link)}" target="_blank" rel="noopener" onclick="registrar('ver_oferta', '${claveJs}')">Ver oferta →</a>
           <button type="button" class="btn-guardar guardado" onclick="toggleGuardado('${claveJs}')">★ Quitar de guardados</button>
           ${estadoPostulacion
-            ? `<span class="badge-postulado">✓ Postulado</span>`
-            : `<button type="button" class="btn-postular" onclick="marcarComoPostulado('${claveJs}')">Marcar como Postulado</button>`}
+            ? `<span class="badge-postulado">✓ Postulé</span>`
+            : `<button type="button" class="btn-postular" onclick="marcarComoPostulado('${claveJs}')">Postulé</button>`}
           ${entrevistaHtml}
         `;
       } else {
@@ -877,37 +889,53 @@
         info.textContent = 'Sin resultados para los filtros seleccionados.';
         return;
       }
-      const visibles = filtradas.slice(0, ofertasVisibles);
-      const restantes = filtradas.length - visibles.length;
-      info.textContent = `Mostrando ${visibles.length} de ${filtradas.length} oferta${filtradas.length === 1 ? '' : 's'}` +
+      const totalPaginas = Math.max(1, Math.ceil(filtradas.length / OFERTAS_POR_PAGINA));
+      if (paginaActual > totalPaginas) paginaActual = totalPaginas; // p. ej. si un filtro dejó menos páginas
+      const desde = (paginaActual - 1) * OFERTAS_POR_PAGINA;
+      const visibles = filtradas.slice(desde, desde + OFERTAS_POR_PAGINA);
+      info.textContent = `Mostrando ${desde + 1}-${desde + visibles.length} de ${filtradas.length} oferta${filtradas.length === 1 ? '' : 's'}` +
         (filtradas.length !== todasLasOfertas.length ? ` (${todasLasOfertas.length} en total)` : '') + '.';
-      contenedor.innerHTML = visibles.map(o => tarjetaHtml(o, 'general')).join('') +
-        (restantes > 0
-          ? `<div class="ver-mas-wrap"><button type="button" class="btn-ver-mas" onclick="verMasOfertas()">Ver más ofertas (${Math.min(restantes, OFERTAS_POR_PAGINA)} de ${restantes} restantes)</button></div>`
-          : '');
+      contenedor.innerHTML = visibles.map(o => tarjetaHtml(o, 'general')).join('') + paginadorHtml(paginaActual, totalPaginas);
     }
-    // Paginación: se muestran OFERTAS_POR_PAGINA tarjetas y el botón suma otras tantas.
-    // Cambiar un filtro/búsqueda/orden vuelve a la primera página (renderDesdeCero);
-    // guardar o postularse re-renderiza SIN perder lo que la persona ya desplegó.
+    // Paginación numerada: una página = OFERTAS_POR_PAGINA tarjetas (se reemplazan, no se acumulan).
+    // Cambiar un filtro/búsqueda/orden vuelve a la página 1 (renderDesdeCero);
+    // guardar o postularse re-renderiza SIN cambiar de página.
     const OFERTAS_POR_PAGINA = 12;
-    let ofertasVisibles = OFERTAS_POR_PAGINA;
+    let paginaActual = 1;
     function renderDesdeCero() {
-      ofertasVisibles = OFERTAS_POR_PAGINA;
+      paginaActual = 1;
       render();
     }
-    function verMasOfertas() {
-      const primeraNueva = ofertasVisibles;
-      ofertasVisibles += OFERTAS_POR_PAGINA;
-      render();
-      // Accesibilidad: el foco pasa a la primera tarjeta nueva para quien navega con teclado/lector de pantalla.
-      const tarjetas = document.querySelectorAll('#contenedor .card');
-      const nueva = tarjetas[primeraNueva];
-      if (nueva) {
-        nueva.setAttribute('tabindex', '-1');
-        nueva.focus({ preventScroll: false });
-      }
+    // Números a mostrar: siempre la primera y la última, la actual y sus vecinas; "…" en los huecos.
+    function numerosDePaginas(actual, total) {
+      const set = new Set([1, total, actual - 1, actual, actual + 1]);
+      const nums = [...set].filter(n => n >= 1 && n <= total).sort((a, b) => a - b);
+      const out = [];
+      nums.forEach((n, i) => { if (i > 0 && n - nums[i - 1] > 1) out.push('…'); out.push(n); });
+      return out;
     }
-    window.verMasOfertas = verMasOfertas;
+    function paginadorHtml(actual, total) {
+      if (total <= 1) return '';
+      const boton = (n, texto, extra, label) => `<button type="button" class="pag-btn ${extra || ''}" onclick="irAPagina(${n})"${label ? ` aria-label="${label}"` : ''}${extra === 'actual' ? ' aria-current="page"' : ''}>${texto}</button>`;
+      const items = numerosDePaginas(actual, total).map(n =>
+        n === '…' ? '<span class="pag-puntos" aria-hidden="true">…</span>'
+                  : boton(n, n, n === actual ? 'actual' : '', n === actual ? `Página ${n}, página actual` : `Ir a la página ${n}`)).join('');
+      return `<nav class="paginador" aria-label="Paginación de ofertas">
+        ${actual > 1 ? boton(actual - 1, '← Anterior', 'pag-nav', 'Página anterior') : ''}
+        ${items}
+        ${actual < total ? boton(actual + 1, 'Siguiente →', 'pag-nav', 'Página siguiente') : ''}
+      </nav>`;
+    }
+    function irAPagina(n) {
+      paginaActual = n;
+      render();
+      // Se vuelve al inicio del listado y el foco pasa a la primera tarjeta (teclado / lector de pantalla).
+      const primera = document.querySelector('#contenedor .card');
+      const info = document.getElementById('resultadosInfo');
+      if (info) info.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (primera) { primera.setAttribute('tabindex', '-1'); primera.focus({ preventScroll: true }); }
+    }
+    window.irAPagina = irAPagina;
     function renderProximas() {
       const section = document.getElementById('proximasSection');
       const urgentes = todasLasOfertas
